@@ -25,7 +25,7 @@ function extractVideo(videoId) {
         xhr.open("GET", "https://www.youtube.com/watch?v=" + videoId, true);
         
         xhr.onload = function() {
-            console.log("XHR selesai dengan HTTP status: " + xhr.status);
+            console.log("XHR status: " + xhr.status);
             if (xhr.status === 200) {
                 var html = xhr.responseText;
                 var marker = "ytInitialPlayerResponse";
@@ -38,7 +38,7 @@ function extractVideo(videoId) {
                         if (braceEnd !== -1) {
                             var jsonStr = html.substring(braceStart, braceEnd + 1);
                             var data = JSON.parse(jsonStr);
-                            console.log("JSON streamingData berhasil diekstrak!");
+                            console.log("Data streaming berhasil diambil");
 
                             if (window.AndroidBridge) {
                                 window.AndroidBridge.onResult(JSON.stringify(data.streamingData || {}));
@@ -48,29 +48,26 @@ function extractVideo(videoId) {
                     }
                 }
 
-                console.log("ytInitialPlayerResponse tidak ditemukan di HTML");
                 if (window.AndroidBridge) {
-                    window.AndroidBridge.onError("Data streaming video tidak ditemukan di HTML.");
+                    window.AndroidBridge.onError("Format streamingData nggak ketemu di halaman.");
                 }
             } else {
                 if (window.AndroidBridge) {
-                    window.AndroidBridge.onError("Gagal memuat YouTube, kode status: " + xhr.status);
+                    window.AndroidBridge.onError("Gagal memuat halaman, kode HTTP: " + xhr.status);
                 }
             }
         };
 
         xhr.onerror = function() {
-            console.log("XHR onerror terpanggil");
             if (window.AndroidBridge) {
-                window.AndroidBridge.onError("Koneksi jaringan WebView terputus.");
+                window.AndroidBridge.onError("Jaringan WebView putus.");
             }
         };
 
         xhr.send();
     } catch (e) {
-        console.log("Pengecualian: " + e.message);
         if (window.AndroidBridge) {
-            window.AndroidBridge.onError("Pengecualian JS: " + e.message);
+            window.AndroidBridge.onError("Galat JS: " + e.message);
         }
     }
 }
