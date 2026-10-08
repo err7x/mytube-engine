@@ -1,3 +1,23 @@
+function findBraceEnd(s, start) {
+    var depth = 0;
+    var inQuote = false;
+    var prev = '';
+    for (var i = start; i < s.length; i++) {
+        var c = s.charAt(i);
+        if (c === '"' && prev !== '\\') {
+            inQuote = !inQuote;
+        } else if (!inQuote) {
+            if (c === '{') depth++;
+            else if (c === '}') {
+                depth--;
+                if (depth === 0) return i;
+            }
+        }
+        prev = c;
+    }
+    return -1;
+}
+
 function extractVideo(videoId) {
     try {
         console.log("Memulai XHR untuk videoId: " + videoId);
@@ -8,33 +28,29 @@ function extractVideo(videoId) {
             console.log("XHR selesai dengan HTTP status: " + xhr.status);
             if (xhr.status === 200) {
                 var html = xhr.responseText;
-                var marker = "ytInitialPlayerResponse = ";
+                var marker = "ytInitialPlayerResponse";
                 var start = html.indexOf(marker);
 
-                if (start === -1) {
-                    marker = "var ytInitialPlayerResponse = ";
-                    start = html.indexOf(marker);
-                }
-
                 if (start !== -1) {
-                    start += marker.length;
-                    var end = html.indexOf("};", start);
-                    if (end === -1) end = html.indexOf(";</script>", start);
-                    
-                    if (end !== -1) {
-                        var jsonStr = html.substring(start, end + 1);
-                        var data = JSON.parse(jsonStr);
+                    var braceStart = html.indexOf("{", start);
+                    if (braceStart !== -1) {
+                        var braceEnd = findBraceEnd(html, braceStart);
+                        if (braceEnd !== -1) {
+                            var jsonStr = html.substring(braceStart, braceEnd + 1);
+                            var data = JSON.parse(jsonStr);
+                            console.log("JSON streamingData berhasil diekstrak!");
 
-                        if (window.AndroidBridge) {
-                            window.AndroidBridge.onResult(JSON.stringify(data.streamingData || {}));
+                            if (window.AndroidBridge) {
+                                window.AndroidBridge.onResult(JSON.stringify(data.streamingData || {}));
+                            }
+                            return;
                         }
-                        return;
                     }
                 }
 
-                console.log("Marker ytInitialPlayerResponse nggak ketemu di HTML");
+                console.log("ytInitialPlayerResponse tidak ditemukan di HTML");
                 if (window.AndroidBridge) {
-                    window.AndroidBridge.onError("Data streaming video nggak ditemukan di HTML.");
+                    window.AndroidBridge.onError("Data streaming video tidak ditemukan di HTML.");
                 }
             } else {
                 if (window.AndroidBridge) {
